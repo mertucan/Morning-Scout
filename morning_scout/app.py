@@ -316,7 +316,7 @@ def build_summary(
             items,
             changes,
             api_key=secrets.gemini_api_key,
-            model=config.gemini_model,
+            models=config.gemini_models,
             language=language,
         )
         log.info("Gemini: summary created (%d characters)", len(text))

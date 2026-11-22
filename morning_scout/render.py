@@ -12,6 +12,7 @@ from morning_scout.messages import messages_for
 # ntfy turns messages above 4,096 bytes into attachments; stay well below.
 NTFY_MAX_BYTES = 3000
 _LINK_RE = re.compile(r"\[([^\]]+)\]\((https?://[^)\s]+)\)")
+_ANY_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]*\)")
 
 _EMAIL_TEMPLATE = """\
 <!doctype html>
@@ -29,10 +30,11 @@ Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.55;color:#1c1917;
 def ntfy_message(summary_md: str, language: str, max_bytes: int = NTFY_MAX_BYTES) -> str:
     """A compact push notification body.
 
-    Long digests are cut at a line boundary with a pointer to the e-mail, which
-    always carries the complete text.
+    Links are removed (news redirect URLs are hundreds of characters long and
+    would crowd out the content); the e-mail carries them. Long digests are cut
+    at a line boundary with a pointer to the e-mail.
     """
-    text = summary_md.strip()
+    text = strip_links(summary_md, messages_for(language)["source"]).strip()
     if len(text.encode("utf-8")) <= max_bytes:
         return text
 
@@ -49,6 +51,14 @@ def ntfy_message(summary_md: str, language: str, max_bytes: int = NTFY_MAX_BYTES
     if not kept:  # one enormous line: hard cut on a character boundary
         kept = [text.encode("utf-8")[:budget].decode("utf-8", errors="ignore")]
     return "\n".join(kept).rstrip() + suffix
+
+
+def strip_links(text: str, source_label: str) -> str:
+    """Drop "[Source](url)" citations entirely and turn other links into plain text."""
+    citation = re.compile(rf",?[ \t]*\[{re.escape(source_label)}\]\([^)]*\)", re.IGNORECASE)
+    text = citation.sub("", text)
+    text = _ANY_LINK_RE.sub(r"\1", text)
+    return re.sub(r"[ \t]+([.,;:])", r"\1", text)
 
 
 def email_html(summary_md: str, title: str, language: str) -> str:

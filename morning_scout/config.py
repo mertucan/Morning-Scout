@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import yaml
 
 DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
+DEFAULT_GEMINI_FALLBACK_MODEL = "gemini-3.6-flash"
 DEFAULT_SEND_TIME = "08:00"
 DEFAULT_TIMEZONE = "Europe/Istanbul"
 DEFAULT_LANGUAGE = "tr"
@@ -49,10 +50,16 @@ class Config:
     searches: list[str] = field(default_factory=list)
     pages: list[PageConfig] = field(default_factory=list)
     gemini_model: str = DEFAULT_GEMINI_MODEL
+    gemini_fallback_model: str = DEFAULT_GEMINI_FALLBACK_MODEL
     send_time: time = time(8, 0)
     timezone: str = DEFAULT_TIMEZONE
     summary_language: str = DEFAULT_LANGUAGE
     search_time_range: str = "day"
+
+    @property
+    def gemini_models(self) -> list[str]:
+        """Primary model first, then the fallback."""
+        return [self.gemini_model, self.gemini_fallback_model]
 
     @property
     def tz(self) -> ZoneInfo:
@@ -139,6 +146,9 @@ def parse_config(text: str) -> Config:
         searches=searches,
         pages=pages,
         gemini_model=str(data.get("gemini_model") or DEFAULT_GEMINI_MODEL).strip(),
+        gemini_fallback_model=str(
+            data.get("gemini_fallback_model") or DEFAULT_GEMINI_FALLBACK_MODEL
+        ).strip(),
         send_time=send_time,
         timezone=timezone,
         summary_language=str(data.get("summary_language") or DEFAULT_LANGUAGE).strip().lower(),

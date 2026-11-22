@@ -17,7 +17,7 @@ Every morning I was opening the same tabs: news searches, a few announcement pag
 - **Only new things.** Links are normalized (tracking parameters, `www`, trailing slashes and fragments are removed) and hashed. Anything sent in the last 30 days is skipped.
 - **Readable page diffs.** A watched page is compared with its last snapshot, and only the changed lines go to the summary. A newly added page is recorded silently on its first day instead of triggering a false alarm.
 - **Grounded AI summary.** Gemini groups the results by topic and writes 1–2 sentences per item, each with a source link. It is told to use only the sources it is given, and to say so plainly when a question such as "are applications open?" has no clear evidence. Google Search grounding is not used.
-- **Graceful degradation.** A failing source is skipped. If Gemini fails, you get a plain title + link list. On a quiet day you get a short "nothing new" push.
+- **Graceful degradation.** A failing source is skipped. Gemini calls are retried on 429/5xx errors and then switch to a fallback model. If both fail, you get a plain title + link list. On a quiet day you get a short "nothing new" push.
 - **Two channels.** A compact Markdown push on your phone (ntfy) and a full HTML e-mail with clickable links (Gmail).
 - **Delivered on time, once.** The run is triggered at 07:45, waits until exactly 08:00 local time, and never sends twice on the same day, even when the backup schedule also fires.
 - **Private by design.** Topics, links and summaries never touch the repository, the commit history, Actions logs or artifacts (see [Privacy design](#privacy-design)).
@@ -194,6 +194,7 @@ pages:                    # pages to watch; css_selector is optional
     url: https://www.python.org/downloads/
     css_selector: ".download-list-widget"
 gemini_model: gemini-3.8-flash
+gemini_fallback_model: gemini-3.6-flash   # used if the main model is overloaded
 send_time: "08:00"
 timezone: Europe/Istanbul
 summary_language: tr      # "tr" or "en" (other codes get English UI text)

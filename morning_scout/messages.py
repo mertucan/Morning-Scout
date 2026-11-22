@@ -47,8 +47,9 @@ Kurallar:
 - YALNIZCA aşağıda verilen kaynaklardaki bilgilere dayan. Kendi bilgini ekleme, tahmin \
 yürütme, uydurma.
 - Konulara göre grupla: her konu için "### Konu adı" başlığı kullan.
-- Her madde 1-2 cümle olsun ve sonunda kaynağı Markdown link olarak ver: [{source}](URL). \
-URL'leri aynen kopyala, değiştirme.
+- Her madde 1-2 cümle olsun ve sonunda kaynağı, kaynak listesindeki numarasıyla tam olarak \
+şu biçimde ver: [{source}](S3). URL yazma; yalnızca listede bulunan numaraları kullan. \
+Birden fazla kaynak varsa: [{source}](S3), [{source}](S7).
 - Aynı olayı anlatan birden fazla kaynak varsa tek maddede birleştir.
 - Konu bir soru içeriyorsa (ör. "başvuru açıldı mı?", "tarih açıklandı mı?") kaynaklarda \
 net bir kanıt yoksa bunu açıkça yaz (ör. "Kaynaklarda başvurunun açıldığına dair net bir \
@@ -68,8 +69,9 @@ Rules:
 - Rely ONLY on the information in the sources below. Do not add outside knowledge, guess \
 or invent anything.
 - Group by topic, using a "### Topic" heading per topic.
-- Each bullet is 1-2 sentences and ends with the source as a Markdown link: \
-[{source}](URL). Copy URLs exactly.
+- Each bullet is 1-2 sentences and ends with its source, cited by its number from the \
+source list in exactly this form: [{source}](S3). Never write URLs; only use numbers that \
+appear in the list. Several sources: [{source}](S3), [{source}](S7).
 - Merge multiple sources about the same event into a single bullet.
 - If a topic is a question (e.g. "are applications open?") and the sources contain no clear \
 evidence, say so explicitly. If there is evidence, say which source contains it.
