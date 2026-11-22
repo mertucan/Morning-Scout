@@ -1,0 +1,57 @@
+# =====================================================================
+#  Morning Scout configuration (example)
+#  Copy this file into your secret Gist as "config.yaml" and edit it.
+#  Bu dosyayı secret Gist'ine "config.yaml" adıyla kopyala ve düzenle.
+#
+#  Tips / İpuçları:
+#   - Every list entry starts with "- " (dash + space).
+#     Her liste satırı "- " (tire + boşluk) ile başlar.
+#   - Use spaces, never tabs. / Girinti için TAB değil boşluk kullan.
+#   - Put text containing ":" or "#" in quotes.
+#     İçinde ":" veya "#" geçen metni tırnak içine al.
+# =====================================================================
+
+# Google News searches (articles from the last 24 hours).
+# Google Haberler'de aranacak ifadeler (son 24 saat).
+news:
+  - artificial intelligence
+  - Python release
+
+# Web searches via Tavily. Questions work well.
+# Free plan: ~1,000 searches/month -> keep this list under ~30 entries.
+# Tavily ile web araması. Soru şeklinde yazabilirsin.
+# Ücretsiz plan ayda ~1.000 arama: bu listeyi 30 maddenin altında tut.
+searches:
+  - Has a new stable Python version been released?
+  - open source LLM release announcement
+
+# Pages to watch for changes. "css_selector" is optional: use it to watch
+# only part of a page (e.g. "#main", ".announcements") and ignore noise.
+# A newly added page is only recorded on its first day; changes are
+# reported from the next day on.
+# Değişikliği takip edilecek sayfalar. "css_selector" isteğe bağlıdır;
+# sayfanın sadece bir bölümünü izlemek için kullan. Yeni eklenen sayfa
+# ilk gün sadece kaydedilir, değişiklikler ertesi günden itibaren bildirilir.
+pages:
+  - name: Python downloads
+    url: https://www.python.org/downloads/
+    css_selector: ".download-list-widget"
+  - name: Example page
+    url: https://example.com/
+
+# Gemini model used for the summary (must be available on your plan).
+# Özet için kullanılacak Gemini modeli.
+gemini_model: gemini-3.8-flash
+
+# When the digest is delivered, in the time zone below. Keep the quotes.
+# Özetin gönderileceği saat (aşağıdaki saat diliminde). Tırnakları koru.
+send_time: "08:00"
+timezone: Europe/Istanbul
+
+# Language of the digest: "tr" (Türkçe) or "en" (English).
+# Özet dili.
+summary_language: tr
+
+# How far back web searches look: "day" or "week".
+# Web aramasının ne kadar geriye bakacağı: "day" (gün) veya "week" (hafta).
+search_time_range: day

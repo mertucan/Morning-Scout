@@ -1,0 +1,9 @@
+# Pinned runtime dependencies used by GitHub Actions (also the pip cache key).
+beautifulsoup4==4.15.0
+feedparser==6.0.14
+google-genai==3.6.1
+Markdown==3.11.3
+python-dotenv==1.2.4
+PyYAML==6.0.4
+requests==2.34.2
+tzdata==2026.6

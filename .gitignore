@@ -221,3 +221,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Morning Scout: personal data must never be committed
+config.yaml
+state.json
+data/

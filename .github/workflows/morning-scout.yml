@@ -1,0 +1,49 @@
+name: Morning Scout
+
+on:
+  # Primary trigger: cron-job.org calls the workflow_dispatch API at 07:45 Europe/Istanbul.
+  workflow_dispatch:
+  # Backup: GitHub's own scheduler (can be delayed). 05:15 UTC = 08:15 Europe/Istanbul.
+  # The "already sent today" guard prevents a second digest.
+  schedule:
+    - cron: "15 5 * * *"
+
+# Least privilege: the job only needs to check out the code.
+# config.yaml / state.json live in a secret Gist, reached with GIST_TOKEN.
+permissions:
+  contents: read
+
+# Never run two digests at the same time; a second run waits, then exits on the daily guard.
+concurrency:
+  group: morning-scout
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: pip install --quiet -r requirements.txt
+
+      # No --verbose / --dry-run here: logs must stay free of personal data.
+      # No artifacts are uploaded.
+      - name: Run Morning Scout
+        run: python -m morning_scout
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          GIST_ID: ${{ secrets.GIST_ID }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
