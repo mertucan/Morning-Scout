@@ -9,7 +9,7 @@
 
 ## Why I built this
 
-> _TODO: 2–3 sentences about your motivation, e.g. the topics you kept checking by hand every morning and why you wanted a hands-off, private way to do it._
+Every morning I was opening the same tabs: news searches, a few announcement pages, a couple of "has this been released yet?" queries. Most days nothing had changed, and on the days something had, it was easy to miss. I built Morning Scout to stop checking things by hand. It's my own personal newsletter that does the rounds for me and arrives at 8:00 with only what's actually new. It runs entirely on free tiers, and the topics I follow stay private even though the code is public.
 
 ## Features
 
@@ -25,11 +25,12 @@
 
 ## Example output
 
-| Push notification (ntfy) | E-mail digest |
-| --- | --- |
-| ![ntfy notification](docs/screenshots/ntfy.png) | ![E-mail digest](docs/screenshots/email.png) |
+**E-mail digest** (rendered by `render.email_html` with example content):
 
-_Screenshots coming soon (`docs/screenshots/`)._
+<img src="docs/screenshots/email.png" alt="E-mail digest" width="600">
+
+<!-- TODO: add docs/screenshots/ntfy.png (phone push notification) -->
+_The ntfy push notification screenshot is coming soon._
 
 ## Architecture
 
