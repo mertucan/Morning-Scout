@@ -21,6 +21,7 @@ Every morning I was opening the same tabs: news searches, a few announcement pag
 - **Two channels.** A compact Markdown push on your phone (ntfy) and a full HTML e-mail with clickable links (Gmail).
 - **Delivered on time, once.** The run is triggered at 07:45, waits until exactly 08:00 local time, and never sends twice on the same day, even when the backup schedule also fires.
 - **Private by design.** Topics, links and summaries never touch the repository, the commit history, Actions logs or artifacts (see [Privacy design](#privacy-design)).
+- **Token expiry reminder.** GitHub reports when the Gist token expires. In its last 14 days, a reminder to regenerate it appears at the top of the digest.
 - **Free to run.** Every service is used within its free tier.
 
 ## Example output

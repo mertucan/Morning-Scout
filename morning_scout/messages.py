@@ -20,6 +20,7 @@ MESSAGES: dict[str, dict[str, str]] = {
         "config_error_line": " (satır {line})",
         "state_error": "⚠️ state.json okunamadı. Gist'teki dosyayı kontrol et veya içeriğini {} yap.",
         "footer": "Morning Scout tarafından otomatik oluşturuldu.",
+        "token_expiry": "⚠️ **GitHub token'ının süresi {days} gün içinde doluyor ({date}).** GitHub → Settings → Developer settings → Fine-grained tokens → *Regenerate token*; ardından `GIST_TOKEN` secret'ını ve cron-job.org'daki token'ı güncelle.",
     },
     "en": {
         "title": "Morning Scout · {date}",
@@ -34,6 +35,7 @@ MESSAGES: dict[str, dict[str, str]] = {
         "config_error_line": " (line {line})",
         "state_error": "⚠️ Could not read state.json. Check the file in your Gist or reset it to {}.",
         "footer": "Generated automatically by Morning Scout.",
+        "token_expiry": "⚠️ **Your GitHub token expires in {days} days ({date}).** GitHub → Settings → Developer settings → Fine-grained tokens → *Regenerate token*, then update the `GIST_TOKEN` secret and the token in cron-job.org.",
     },
 }
 

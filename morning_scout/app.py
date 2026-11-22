@@ -6,7 +6,7 @@ import logging
 import os
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from morning_scout import notify, render, timing
@@ -41,6 +41,7 @@ from morning_scout.urls import title_key, url_key
 log = logging.getLogger(__name__)
 
 DEFAULT_DATA_DIR = Path("data")
+TOKEN_WARNING_DAYS = 14
 MAX_WORKERS = 8
 
 EXIT_OK = 0
@@ -121,6 +122,9 @@ def run(options: RunOptions, secrets: Secrets | None = None, storage: Storage | 
     _log_counts(collection, new_items, len(config.pages))
 
     summary, kind = build_summary(new_items, collection.changes, config, secrets)
+    warning = token_expiry_warning(storage, config.summary_language)
+    if warning:
+        summary = f"{warning}\n\n{summary}"
     title = messages_for(config.summary_language)["title"].format(date=today.strftime("%d.%m.%Y"))
 
     if options.dry_run:
@@ -157,6 +161,26 @@ def make_storage(options: RunOptions, secrets: Secrets) -> Storage:
     if options.local or data_dir:
         return LocalStorage(Path(data_dir) if data_dir else DEFAULT_DATA_DIR)
     return GistStorage(secrets.gist_id, secrets.gist_token)
+
+
+def token_expiry_warning(
+    storage: Storage, language: str, now: datetime | None = None
+) -> str | None:
+    """A reminder to regenerate the Gist token when it expires within a few days.
+
+    GitHub reports the expiry of fine-grained tokens in a response header; the
+    reminder is put at the top of the digest so it can't be missed.
+    """
+    expires_at: datetime | None = getattr(storage, "token_expires_at", None)
+    if expires_at is None:
+        return None
+    days_left = (expires_at - (now or datetime.now(UTC))).days
+    if days_left > TOKEN_WARNING_DAYS:
+        return None
+    log.warning("Gist token expires in %d day(s); regenerate it soon", max(days_left, 0))
+    return messages_for(language)["token_expiry"].format(
+        days=max(days_left, 0), date=expires_at.strftime("%d.%m.%Y")
+    )
 
 
 def load_config(storage: Storage) -> Config:

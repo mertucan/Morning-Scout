@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -10,7 +11,24 @@ import requests
 CONFIG_FILE = "config.yaml"
 STATE_FILE = "state.json"
 GITHUB_API = "https://api.github.com"
+TOKEN_EXPIRATION_HEADER = "github-authentication-token-expiration"
 _TIMEOUT = 30
+
+
+def parse_token_expiration(value: str | None) -> datetime | None:
+    """Parse GitHub's ``github-authentication-token-expiration`` header.
+
+    The header is only sent for tokens that expire, e.g. ``"2027-02-20 21:14:46 UTC"``.
+    """
+    if not value:
+        return None
+    for fmt in ("%Y-%m-%d %H:%M:%S UTC", "%Y-%m-%d %H:%M:%S %z"):
+        try:
+            parsed = datetime.strptime(value.strip(), fmt)
+        except ValueError:
+            continue
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
+    return None
 
 
 class StorageError(Exception):
@@ -61,6 +79,7 @@ class GistStorage:
             }
         )
         self._files: dict[str, Any] | None = None
+        self.token_expires_at: datetime | None = None
 
     def read(self, name: str) -> str | None:
         files = self._load()
@@ -79,7 +98,11 @@ class GistStorage:
 
     def _load(self) -> dict[str, Any]:
         if self._files is None:
-            self._files = self._request("GET", self._url).json().get("files", {})
+            response = self._request("GET", self._url)
+            self.token_expires_at = parse_token_expiration(
+                response.headers.get(TOKEN_EXPIRATION_HEADER)
+            )
+            self._files = response.json().get("files", {})
         return self._files
 
     def _request(self, method: str, url: str, **kwargs: Any) -> requests.Response:
