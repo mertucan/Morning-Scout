@@ -11,11 +11,24 @@
 #     İçinde ":" veya "#" geçen metni tırnak içine al.
 # =====================================================================
 
+# An entry in "news" or "searches" is plain text, or a block with:
+#   query: what to search for
+#   topic: heading in the digest; entries with the same topic are grouped
+#   sites: searches only; restrict to these domains (e.g. x.com, instagram.com)
+#   focus: instruction for the summary; results that don't match are left out
+# "news" ve "searches" maddeleri düz metin olabilir ya da şu alanlarla yazılır:
+#   query: aranacak ifade
+#   topic: e-postadaki başlık; aynı topic'e sahip maddeler birlikte gruplanır
+#   sites: sadece searches için; bu sitelerle sınırla (ör. x.com, instagram.com)
+#   focus: özet için talimat; uymayan sonuçlar e-postaya girmez
+
 # Google News searches (articles from the last 24 hours).
 # Google Haberler'de aranacak ifadeler (son 24 saat).
 news:
   - artificial intelligence
-  - Python release
+  - query: open source LLM release
+    topic: Open models
+    focus: Only releases with downloadable model weights.
 
 # Web searches via Tavily. Questions work well.
 # Free plan: ~1,000 searches/month -> keep this list under ~30 entries.
@@ -23,7 +36,11 @@ news:
 # Ücretsiz plan ayda ~1.000 arama: bu listeyi 30 maddenin altında tut.
 searches:
   - Has a new stable Python version been released?
-  - open source LLM release announcement
+  # Public X / Instagram posts that search engines have indexed.
+  # X / Instagram'da arama motorlarının dizinlediği herkese açık gönderiler.
+  - query: open weights model release
+    topic: Open models
+    sites: [x.com, instagram.com]
 
 # Pages to watch for changes. "css_selector" is optional: use it to watch
 # only part of a page (e.g. "#main", ".announcements") and ignore noise.
@@ -38,6 +55,7 @@ pages:
     css_selector: ".download-list-widget"
   - name: Example page
     url: https://example.com/
+    focus: Only mention changes to the opening hours.
 
 # Gemini model used for the summary, and a fallback used when it is
 # overloaded or unavailable. Both must be available on your plan.

@@ -22,15 +22,15 @@ def build_feed_url(query: str) -> str:
     return FEED_URL.format(query=quote_plus(f"{query} when:1d"))
 
 
-def fetch_news(query: str, session: requests.Session) -> list[Item]:
-    """Return recent articles for ``query``.
+def fetch_news(query: str, session: requests.Session, topic: str | None = None) -> list[Item]:
+    """Return recent articles for ``query``, grouped under ``topic`` (default: the query).
 
     The feed is downloaded with ``requests`` (for timeouts and status checks) and
     parsed with ``feedparser``.
     """
     response = session.get(build_feed_url(query), timeout=TIMEOUT)
     response.raise_for_status()
-    return parse_feed(response.content, topic=query)
+    return parse_feed(response.content, topic=topic or query)
 
 
 def parse_feed(content: bytes | str, topic: str) -> list[Item]:

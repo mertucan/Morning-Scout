@@ -13,6 +13,9 @@ from morning_scout.messages import messages_for
 NTFY_MAX_BYTES = 3000
 _LINK_RE = re.compile(r"\[([^\]]+)\]\((https?://[^)\s]+)\)")
 _ANY_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]*\)")
+_CITATION_RE = re.compile(r"[ \t]*\[\[\d+\]\]\([^)]*\)")
+_CITATION_HTML_RE = re.compile(r"(<a [^>]*>\[\d+\]</a>)")
+_SOURCES_STYLE = "font-size:13px;color:#57534e;"
 
 _EMAIL_TEMPLATE = """\
 <!doctype html>
@@ -30,11 +33,12 @@ Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.55;color:#1c1917;
 def ntfy_message(summary_md: str, language: str, max_bytes: int = NTFY_MAX_BYTES) -> str:
     """A compact push notification body.
 
-    Links are removed (news redirect URLs are hundreds of characters long and
-    would crowd out the content); the e-mail carries them. Long digests are cut
-    at a line boundary with a pointer to the e-mail.
+    Citations, source lists and links are removed (news redirect URLs are
+    hundreds of characters long and would crowd out the content); the e-mail
+    carries them. Long digests are cut at a line boundary with a pointer to the
+    e-mail.
     """
-    text = strip_links(summary_md, messages_for(language)["source"]).strip()
+    text = strip_links(summary_md, messages_for(language)["sources_heading"]).strip()
     if len(text.encode("utf-8")) <= max_bytes:
         return text
 
@@ -53,20 +57,41 @@ def ntfy_message(summary_md: str, language: str, max_bytes: int = NTFY_MAX_BYTES
     return "\n".join(kept).rstrip() + suffix
 
 
-def strip_links(text: str, source_label: str) -> str:
-    """Drop "[Source](url)" citations entirely and turn other links into plain text."""
-    citation = re.compile(rf",?[ \t]*\[{re.escape(source_label)}\]\([^)]*\)", re.IGNORECASE)
-    text = citation.sub("", text)
+def strip_links(text: str, sources_heading: str) -> str:
+    """Plain-text version for push: no citations, no source lists, links become their text."""
+    kept: list[str] = []
+    in_sources = False
+    for line in text.splitlines():
+        if line.strip() == f"**{sources_heading}**":
+            in_sources = True
+            continue
+        if line.startswith("#"):
+            in_sources = False
+        if not in_sources:
+            kept.append(line)
+    text = _CITATION_RE.sub("", "\n".join(kept))
     text = _ANY_LINK_RE.sub(r"\1", text)
-    return re.sub(r"[ \t]+([.,;:])", r"\1", text)
+    text = re.sub(r"[ \t]+([.,;:])", r"\1", text)
+    return re.sub(r"\n{3,}", "\n\n", text)
 
 
 def email_html(summary_md: str, title: str, language: str) -> str:
-    """Full digest as a self-contained HTML e-mail with clickable links."""
+    """Full digest as a self-contained HTML e-mail with clickable links.
+
+    Numbered citations are shown as superscripts linking to the source, and
+    each topic's source list is set in smaller, muted type.
+    """
     # Neutralise raw HTML from the LLM output; Markdown links are kept intact.
     safe_md = summary_md.replace("<", "&lt;")
     body = markdown.markdown(safe_md, extensions=["sane_lists"])
     body = body.replace("<a href=", '<a style="color:#2563eb;" target="_blank" href=')
+    body = _CITATION_HTML_RE.sub(r'<sup style="font-size:11px;">\1</sup>', body)
+    heading = html.escape(messages_for(language)["sources_heading"])
+    body = body.replace(
+        f"<p><strong>{heading}</strong></p>\n<ol>",
+        f'<p style="{_SOURCES_STYLE}margin-bottom:4px;"><strong>{heading}</strong></p>\n'
+        f'<ol style="{_SOURCES_STYLE}margin-top:0;">',
+    )
     return _EMAIL_TEMPLATE.format(
         title=html.escape(title),
         body=body,

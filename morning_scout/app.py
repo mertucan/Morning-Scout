@@ -15,6 +15,7 @@ from morning_scout.config import (
     Config,
     ConfigError,
     PageConfig,
+    Query,
     Secrets,
     parse_config,
     tavily_monthly_usage,
@@ -243,14 +244,16 @@ def collect(config: Config, secrets: Secrets, state: State, today: date) -> Coll
     return result
 
 
-def _fetch_news(query: str) -> list[Item]:
+def _fetch_news(query: Query) -> list[Item]:
     with new_session() as session:
-        return fetch_news(query, session)
+        return fetch_news(query.text, session, topic=query.topic)
 
 
-def _search(query: str, api_key: str, time_range: str) -> list[Item]:
+def _search(query: Query, api_key: str, time_range: str) -> list[Item]:
     with new_session() as session:
-        return search(query, api_key, session, time_range)
+        return search(
+            query.text, api_key, session, time_range, sites=query.sites, topic=query.topic
+        )
 
 
 def _fetch_page(page: PageConfig) -> str:
@@ -318,6 +321,7 @@ def build_summary(
             api_key=secrets.gemini_api_key,
             models=config.gemini_models,
             language=language,
+            focus=config.focus_by_topic,
         )
         log.info("Gemini: summary created (%d characters)", len(text))
         return text, "ai"

@@ -17,6 +17,8 @@ import yaml
 
 DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
 DEFAULT_GEMINI_FALLBACK_MODEL = "gemini-3.6-flash"
+# Lightweight model tried last; it is rarely overloaded.
+LAST_RESORT_GEMINI_MODEL = "gemini-3.5-flash-lite"
 DEFAULT_SEND_TIME = "08:00"
 DEFAULT_TIMEZONE = "Europe/Istanbul"
 DEFAULT_LANGUAGE = "tr"
@@ -34,20 +36,41 @@ class ConfigError(Exception):
 
 
 @dataclass(frozen=True)
+class Query:
+    """One news or web search query.
+
+    Attributes:
+        text: What is searched for.
+        topic: Heading the results are grouped under (defaults to ``text``), so
+            several queries can share one section of the digest.
+        sites: Web searches only: restrict results to these domains
+            (e.g. ``x.com``, ``instagram.com``).
+        focus: Optional instruction for the summary, e.g. "only associate-degree
+            listings"; results that don't match it are left out.
+    """
+
+    text: str
+    topic: str
+    sites: tuple[str, ...] = ()
+    focus: str | None = None
+
+
+@dataclass(frozen=True)
 class PageConfig:
     """A web page whose text is watched for changes."""
 
     name: str
     url: str
     css_selector: str | None = None
+    focus: str | None = None
 
 
 @dataclass(frozen=True)
 class Config:
     """Validated user configuration."""
 
-    news: list[str] = field(default_factory=list)
-    searches: list[str] = field(default_factory=list)
+    news: list[Query] = field(default_factory=list)
+    searches: list[Query] = field(default_factory=list)
     pages: list[PageConfig] = field(default_factory=list)
     gemini_model: str = DEFAULT_GEMINI_MODEL
     gemini_fallback_model: str = DEFAULT_GEMINI_FALLBACK_MODEL
@@ -58,19 +81,31 @@ class Config:
 
     @property
     def gemini_models(self) -> list[str]:
-        """Primary model first, then the fallback."""
-        return [self.gemini_model, self.gemini_fallback_model]
+        """Primary model, then the fallback, then a lightweight last resort (no duplicates)."""
+        models = [self.gemini_model, self.gemini_fallback_model, LAST_RESORT_GEMINI_MODEL]
+        return list(dict.fromkeys(models))
 
     @property
     def tz(self) -> ZoneInfo:
         return ZoneInfo(self.timezone)
 
+    @property
+    def focus_by_topic(self) -> dict[str, str]:
+        """The ``focus`` instruction of each topic that has one (first one wins)."""
+        focus: dict[str, str] = {}
+        for query in [*self.news, *self.searches]:
+            if query.focus:
+                focus.setdefault(query.topic, query.focus)
+        return focus
+
     def sensitive_values(self) -> list[str]:
         """Every user-provided value that must never appear in logs."""
-        values = [*self.news, *self.searches]
+        values: list[str] = []
+        for query in [*self.news, *self.searches]:
+            values.extend([query.text, query.topic, *query.sites, query.focus or ""])
         for page in self.pages:
-            values.extend([page.name, page.url, page.css_selector or ""])
-        return values
+            values.extend([page.name, page.url, page.css_selector or "", page.focus or ""])
+        return [v for v in values if v]
 
 
 @dataclass(frozen=True)
@@ -126,8 +161,8 @@ def parse_config(text: str) -> Config:
     if not isinstance(data, dict):
         raise ConfigError("config.yaml must be a mapping of settings at the top level", line=1)
 
-    news = _string_list(data, "news")
-    searches = _string_list(data, "searches")
+    news = _queries(data, "news", allow_sites=False)
+    searches = _queries(data, "searches", allow_sites=True)
     pages = _pages(data.get("pages"))
 
     send_time = _parse_time(data.get("send_time") or DEFAULT_SEND_TIME)
@@ -156,16 +191,66 @@ def parse_config(text: str) -> Config:
     )
 
 
-def _string_list(data: dict[str, Any], key: str) -> list[str]:
+def _queries(data: dict[str, Any], key: str, *, allow_sites: bool) -> list[Query]:
+    """Parse a list whose entries are plain text or ``{query, topic, sites, focus}``."""
     raw = data.get(key) or []
     if not isinstance(raw, list):
         raise ConfigError(f"'{key}' must be a list (each line starting with '- ')")
-    items: list[str] = []
-    for value in raw:
-        if not isinstance(value, str | int | float) or not str(value).strip():
+    queries: list[Query] = []
+    for index, value in enumerate(raw, start=1):
+        if isinstance(value, dict):
+            queries.append(_query_entry(value, key, index, allow_sites=allow_sites))
+        elif isinstance(value, str | int | float) and str(value).strip():
+            text = str(value).strip()
+            queries.append(Query(text=text, topic=text))
+        else:
             raise ConfigError(f"every entry in '{key}' must be non-empty text")
-        items.append(str(value).strip())
-    return list(dict.fromkeys(items))  # drop duplicates, keep order
+    return list(dict.fromkeys(queries))  # drop duplicates, keep order
+
+
+def _query_entry(entry: dict[str, Any], key: str, index: int, *, allow_sites: bool) -> Query:
+    text = _optional_text(entry.get("query"))
+    if not text:
+        raise ConfigError(f"{key} entry #{index} needs a 'query'")
+    if set(entry) - {"query", "topic", "sites", "focus"}:
+        # The unknown names are not echoed: a mis-indented line may be personal text.
+        raise ConfigError(
+            f"{key} entry #{index} has an unknown field (allowed: query, topic, sites, focus)"
+        )
+    sites = _sites(entry.get("sites"), key, index)
+    if sites and not allow_sites:
+        raise ConfigError(f"{key} entry #{index}: 'sites' is only supported in 'searches'")
+    return Query(
+        text=text,
+        topic=_optional_text(entry.get("topic")) or text,
+        sites=sites,
+        focus=_optional_text(entry.get("focus")),
+    )
+
+
+def _sites(raw: Any, key: str, index: int) -> tuple[str, ...]:
+    """Domains such as ``x.com``; a pasted ``https://www.x.com/`` is tidied up."""
+    if raw is None:
+        return ()
+    if isinstance(raw, str):
+        raw = [raw]
+    if not isinstance(raw, list):
+        raise ConfigError(f"{key} entry #{index}: 'sites' must be a list of domains")
+    sites: list[str] = []
+    for value in raw:
+        site = str(value).strip().lower().removeprefix("https://").removeprefix("http://")
+        site = site.removeprefix("www.").strip("/")
+        if not site or "/" in site or " " in site:
+            raise ConfigError(
+                f"{key} entry #{index}: every 'sites' item must be a domain like x.com"
+            )
+        sites.append(site)
+    return tuple(dict.fromkeys(sites))
+
+
+def _optional_text(value: Any) -> str | None:
+    text = str(value).strip() if value is not None else ""
+    return text or None
 
 
 def _pages(raw: Any) -> list[PageConfig]:
@@ -183,8 +268,14 @@ def _pages(raw: Any) -> list[PageConfig]:
             raise ConfigError(f"pages entry #{index} needs both 'name' and 'url'")
         if not url.startswith(("http://", "https://")):
             raise ConfigError(f"pages entry #{index}: 'url' must start with http:// or https://")
-        selector = entry.get("css_selector")
-        pages.append(PageConfig(name, url, str(selector).strip() if selector else None))
+        pages.append(
+            PageConfig(
+                name,
+                url,
+                css_selector=_optional_text(entry.get("css_selector")),
+                focus=_optional_text(entry.get("focus")),
+            )
+        )
     return pages
 
 

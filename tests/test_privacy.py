@@ -12,7 +12,7 @@ import requests
 
 from morning_scout import app, notify
 from morning_scout.app import RunOptions, run
-from morning_scout.config import Secrets
+from morning_scout.config import Query, Secrets
 from morning_scout.models import Item
 from morning_scout.privacy import REDACTED, RedactingFilter, Redactor, describe_error, redactor
 from morning_scout.state import State
@@ -82,10 +82,10 @@ def data_dir(tmp_path: Path) -> Path:
 def mocked_sources(monkeypatch: pytest.MonkeyPatch) -> dict[str, list]:
     sent: dict[str, list] = {"ntfy": [], "email": []}
 
-    def fake_news(query: str) -> list[Item]:
-        return [Item("news", query, TITLE, ITEM_URL, "snippet")]
+    def fake_news(query: Query) -> list[Item]:
+        return [Item("news", query.topic, TITLE, ITEM_URL, "snippet")]
 
-    def fake_search(query: str, api_key: str, time_range: str) -> list[Item]:
+    def fake_search(query: Query, api_key: str, time_range: str) -> list[Item]:
         raise requests.HTTPError(
             f"500 Server Error for url: https://api.tavily.com/search?q={QUERY}"
         )

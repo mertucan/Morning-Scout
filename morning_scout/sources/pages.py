@@ -78,7 +78,7 @@ def compare(page: PageConfig, text: str, previous: PageSnapshot | None, today: d
     if not diff:
         # Only the part beyond the stored (truncated) text changed.
         diff = "…"
-    return PageCheck("changed", snapshot, PageChange(page.name, page.url, diff))
+    return PageCheck("changed", snapshot, PageChange(page.name, page.url, diff, page.focus))
 
 
 def summarize_diff(old: str, new: str, limit: int = MAX_DIFF_CHARS) -> str:

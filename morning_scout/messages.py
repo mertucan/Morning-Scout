@@ -16,6 +16,7 @@ MESSAGES: dict[str, dict[str, str]] = {
         "section_pages": "Değişen sayfalar",
         "read_more_in_mail": "… devamı e-postada.",
         "source": "Kaynak",
+        "sources_heading": "Kaynaklar",
         "config_error": "⚠️ config.yaml okunamadı{line}. Gist'teki dosyayı kontrol et. Bugünkü özet gönderilmedi.",
         "config_error_line": " (satır {line})",
         "state_error": "⚠️ state.json okunamadı. Gist'teki dosyayı kontrol et veya içeriğini {} yap.",
@@ -31,6 +32,7 @@ MESSAGES: dict[str, dict[str, str]] = {
         "section_pages": "Changed pages",
         "read_more_in_mail": "… more in the e-mail.",
         "source": "Source",
+        "sources_heading": "Sources",
         "config_error": "⚠️ Could not read config.yaml{line}. Please check the file in your Gist. Today's digest was not sent.",
         "config_error_line": " (line {line})",
         "state_error": "⚠️ Could not read state.json. Check the file in your Gist or reset it to {}.",
@@ -39,45 +41,34 @@ MESSAGES: dict[str, dict[str, str]] = {
     },
 }
 
-_PROMPT_TR = """\
-Sen kişisel bir sabah araştırma asistanısın. Aşağıda, kullanıcının takip ettiği konular \
-için bugün bulunan YENİ kaynaklar var. Bunlardan kısa bir günlük özet yaz.
+_PROMPT_TR = """Sen kişisel bir sabah araştırma asistanısın. Aşağıda, kullanıcının takip ettiği konular için bugün bulunan YENİ kaynaklar var; her kaynağın başında [S1], [S2] gibi bir numarası var. Bunlardan kısa, kolay okunur bir günlük özet hazırla.
 
 Kurallar:
-- YALNIZCA aşağıda verilen kaynaklardaki bilgilere dayan. Kendi bilgini ekleme, tahmin \
-yürütme, uydurma.
-- Konulara göre grupla: her konu için "### Konu adı" başlığı kullan.
-- Her madde 1-2 cümle olsun ve sonunda kaynağı, kaynak listesindeki numarasıyla tam olarak \
-şu biçimde ver: [{source}](S3). URL yazma; yalnızca listede bulunan numaraları kullan. \
-Birden fazla kaynak varsa: [{source}](S3), [{source}](S7).
+- YALNIZCA verilen kaynaklardaki bilgilere dayan. Kendi bilgini ekleme, tahmin yürütme, uydurma.
+- Konulara göre grupla; "topic" olarak verilen konu adını aynen kullan.
+- Her konuyu kısa maddelere böl. Her madde tek bir bilgi içersin ve 1-2 cümleyi geçmesin.
+- Her maddenin "sources" alanına o bilgiyi içeren kaynakların numaralarını yaz (ör. ["S3", "S7"]). Yalnızca listede bulunan numaraları kullan; metnin içine numara, link veya URL yazma.
 - Aynı olayı anlatan birden fazla kaynak varsa tek maddede birleştir.
-- Konu bir soru içeriyorsa (ör. "başvuru açıldı mı?", "tarih açıklandı mı?") kaynaklarda \
-net bir kanıt yoksa bunu açıkça yaz (ör. "Kaynaklarda başvurunun açıldığına dair net bir \
-bilgi yok."). Kanıt varsa hangi kaynakta olduğunu belirt.
-- Değişen sayfalar için "+" eklenen, "-" silinen satırları gösterir; neyin değiştiğini \
-sade bir dille anlat.
-- Konuyla ilgisiz, reklam veya tekrar niteliğindeki sonuçları atla. Bir konu için anlamlı \
-bir şey kalmadıysa o konuyu hiç yazma.
-- Giriş/kapanış cümlesi yazma; doğrudan başlıklarla başla. Türkçe yaz.
+- Konu bir soru içeriyorsa (ör. "başvuru açıldı mı?", "tarih açıklandı mı?") kaynaklarda net bir kanıt yoksa bunu ayrı bir maddede açıkça yaz (ör. "Kaynaklarda başvurunun açıldığına dair net bir bilgi yok."). Kanıt varsa ilgili kaynağı göster.
+- Değişen sayfalarda "+" eklenen, "-" silinen satırları gösterir; neyin değiştiğini sade bir dille anlat. Her değişen sayfa için sayfa adını "topic" olarak kullan.
+- Bir konunun veya sayfanın altında "Odak" yazıyorsa o kısım için YALNIZCA odağa uyan bilgileri yaz, uymayanları tamamen atla. Odağa uyan bir şey yoksa o konuyu ya da sayfayı hiç yazma.
+- Konuyla ilgisiz, reklam veya tekrar niteliğindeki sonuçları atla. Bir konu için anlamlı bir şey kalmadıysa o konuyu hiç yazma.
+- Türkçe yaz.
 """
 
-_PROMPT_EN = """\
-You are a personal morning research assistant. Below are NEW sources found today for the \
-topics the user follows. Write a short daily digest from them.
+_PROMPT_EN = """You are a personal morning research assistant. Below are NEW sources found today for the topics the user follows; each source is prefixed with an id such as [S1], [S2]. Prepare a short, easy-to-read daily digest from them.
 
 Rules:
-- Rely ONLY on the information in the sources below. Do not add outside knowledge, guess \
-or invent anything.
-- Group by topic, using a "### Topic" heading per topic.
-- Each bullet is 1-2 sentences and ends with its source, cited by its number from the \
-source list in exactly this form: [{source}](S3). Never write URLs; only use numbers that \
-appear in the list. Several sources: [{source}](S3), [{source}](S7).
+- Rely ONLY on the information in the sources. Do not add outside knowledge, guess or invent anything.
+- Group by topic; use the given topic name verbatim as "topic".
+- Split each topic into short bullets. Each bullet holds a single point in 1-2 sentences.
+- Put the ids of the sources supporting a bullet in its "sources" field (e.g. ["S3", "S7"]). Only use ids from the list; never put ids, links or URLs in the text.
 - Merge multiple sources about the same event into a single bullet.
-- If a topic is a question (e.g. "are applications open?") and the sources contain no clear \
-evidence, say so explicitly. If there is evidence, say which source contains it.
-- For changed pages, "+" marks added and "-" removed lines; explain plainly what changed.
+- If a topic is a question (e.g. "are applications open?") and the sources contain no clear evidence, say so explicitly in its own bullet. If there is evidence, cite it.
+- For changed pages, "+" marks added and "-" removed lines; explain plainly what changed. Use the page name as "topic" for each changed page.
+- If a topic or page has a "Focus" line, include ONLY information matching that focus and leave everything else out. If nothing matches, omit that topic or page entirely.
 - Skip irrelevant, promotional or duplicate results. Omit topics with nothing meaningful left.
-- No introduction or closing remarks; start directly with the headings. {language_hint}
+- {language_hint}
 """
 
 

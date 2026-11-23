@@ -26,3 +26,4 @@ class PageChange:
     name: str
     url: str
     diff: str
+    focus: str | None = None

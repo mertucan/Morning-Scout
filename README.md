@@ -14,10 +14,12 @@ Every morning I was opening the same tabs: news searches, a few announcement pag
 ## Features
 
 - **Three kinds of sources.** Google News (last 24 h), Tavily web search (last day or week), and page watching with an optional CSS selector.
+- **Public social media posts, without scraping.** X and Instagram have no free read API, and scraping breaks their terms. Instead, a web search can be restricted to chosen domains (`sites: [x.com, instagram.com]`), which finds public posts that search engines have indexed.
+- **Topics and filters.** Several queries can share one heading (`topic`), and a `focus` instruction tells the summary what to keep, e.g. "only listings open to associate-degree graduates".
 - **Only new things.** Links are normalized (tracking parameters, `www`, trailing slashes and fragments are removed) and hashed. Anything sent in the last 30 days is skipped.
 - **Readable page diffs.** A watched page is compared with its last snapshot, and only the changed lines go to the summary. A newly added page is recorded silently on its first day instead of triggering a false alarm.
-- **Grounded AI summary.** Gemini groups the results by topic and writes 1–2 sentences per item, each with a source link. It is told to use only the sources it is given, and to say so plainly when a question such as "are applications open?" has no clear evidence. Google Search grounding is not used.
-- **Graceful degradation.** A failing source is skipped. Gemini calls are retried on 429/5xx errors and then switch to a fallback model. If both fail, you get a plain title + link list. On a quiet day you get a short "nothing new" push.
+- **Grounded AI summary with citations.** Gemini groups the results by topic into short bullets. Each bullet carries numbered citations like `[1]` `[2]`, and each topic ends with a numbered source list. The model answers in a JSON schema and cites sources by id; the code inserts the real links, so the model can't invent or mangle URLs. It is told to use only the sources it is given, and to say so plainly when a question such as "are applications open?" has no clear evidence. Google Search grounding is not used.
+- **Graceful degradation.** A failing source is skipped. Gemini calls are retried on 429/5xx errors and then move down a model chain (main → fallback → a lightweight last resort). If all of them fail, you get a plain title + link list. On a quiet day you get a short "nothing new" push.
 - **Two channels.** A compact Markdown push on your phone (ntfy) and a full HTML e-mail with clickable links (Gmail).
 - **Delivered on time, once.** The run is triggered at 07:45, waits until exactly 08:00 local time, and never sends twice on the same day, even when the backup schedule also fires.
 - **Private by design.** Topics, links and summaries never touch the repository, the commit history, Actions logs or artifacts (see [Privacy design](#privacy-design)).
@@ -187,9 +189,15 @@ pytest && ruff check . && ruff format --check .
 ```yaml
 news:                     # Google News queries (last 24 h)
   - artificial intelligence
+  - query: open source LLM release   # long form: group several queries under one heading
+    topic: Open models
+    focus: Only releases with downloadable weights.   # what the summary should keep
 searches:                 # Tavily web searches; questions work well
   - Has a new stable Python version been released?
-pages:                    # pages to watch; css_selector is optional
+  - query: open weights model release
+    topic: Open models
+    sites: [x.com, instagram.com]     # only public posts on these sites
+pages:                    # pages to watch; css_selector and focus are optional
   - name: Python downloads
     url: https://www.python.org/downloads/
     css_selector: ".download-list-widget"
@@ -200,6 +208,8 @@ timezone: Europe/Istanbul
 summary_language: tr      # "tr" or "en" (other codes get English UI text)
 search_time_range: day    # "day" or "week"
 ```
+
+Social media searches only see posts that a search engine has already indexed. That usually takes hours to days, and following one specific account is unreliable. For time-critical announcements, watching the official page under `pages` is faster.
 
 ## Privacy design
 
@@ -235,4 +245,4 @@ This repository is public, but what I follow is personal. The design keeps the c
 4. **Secret Gist:** [gist.github.com](https://gist.github.com)'da secret gist oluştur. İçine `config.yaml` (örnek dosyadan) ve içeriği `{}` olan `state.json` koy. URL'nin sonundaki kimlik `GIST_ID` olacak. `GIST_TOKEN` için fine-grained token oluştur (Account permissions → **Gists: Read and write**). Okuma hatası alırsan sadece `gist` scope'lu klasik token kullan.
 5. **GitHub Secrets:** Settings → Secrets and variables → Actions'a 8 secret'ı ekle. Actions → Morning Scout → *Run workflow* ile dene.
 6. **cron-job.org:** Sadece bu repoya erişen, **Actions: Read and write** izinli ayrı bir fine-grained token oluştur. Her gün **07:45 (Europe/Istanbul)** için `POST https://api.github.com/repos/<kullanıcı>/<repo>/actions/workflows/morning-scout.yml/dispatches` işi kur. Header'lar: `Authorization: Bearer <token>`, `Accept: application/vnd.github+json`. Body: `{"ref":"main"}`. Test'te `204` dönmeli.
-7. **Konuları düzenlemek:** Telefondan gist'i açıp `config.yaml`'ı düzenlemen yeterli. YAML bozulursa ntfy'ye satır numarasıyla uyarı gelir.
+7. **Konuları düzenlemek:** Telefondan gist'i açıp `config.yaml`'ı düzenlemen yeterli. YAML bozulursa ntfy'ye satır numarasıyla uyarı gelir. Birden fazla aramayı tek başlıkta toplamak için `topic`, sosyal medyada aramak için `sites: [x.com, instagram.com]`, sonuçları filtrelemek için `focus` kullanabilirsin.
