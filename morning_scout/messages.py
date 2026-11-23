@@ -52,6 +52,7 @@ Kurallar:
 - Konu bir soru içeriyorsa (ör. "başvuru açıldı mı?", "tarih açıklandı mı?") kaynaklarda net bir kanıt yoksa bunu ayrı bir maddede açıkça yaz (ör. "Kaynaklarda başvurunun açıldığına dair net bir bilgi yok."). Kanıt varsa ilgili kaynağı göster.
 - Değişen sayfalarda "+" eklenen, "-" silinen satırları gösterir; neyin değiştiğini sade bir dille anlat. Her değişen sayfa için sayfa adını "topic" olarak kullan.
 - Bir konunun veya sayfanın altında "Odak" yazıyorsa o kısım için YALNIZCA odağa uyan bilgileri yaz, uymayanları tamamen atla. Odağa uyan bir şey yoksa o konuyu ya da sayfayı hiç yazma. Odak SADECE altında yazdığı konu için geçerlidir; diğer konuları etkilemez, onları her zamanki gibi eksiksiz özetle.
+- Tarihleri en üstte verilen bugünün tarihine göre değerlendir: süresi geçmemiş bir başvuruyu "yapılmıştır" diye geçmiş zamanla yazma. Son başvuru tarihi bugün, yarın ya da önümüzdeki 7 gün içindeyse maddenin başına "⏰ Son gün yarın:" veya "⏰ Son 5 gün:" gibi bir uyarı ekle. Süresi geçmiş ilanları ayrıca belirt ya da atla.
 - Kaynağı olan her konuyu ayrı ayrı ele al; hiçbir konuyu atlayıp özeti tek konuya indirme.
 - Konuyla ilgisiz, reklam veya tekrar niteliğindeki sonuçları atla. Bir konu için anlamlı bir şey kalmadıysa o konuyu hiç yazma.
 - Türkçe yaz.
@@ -68,6 +69,7 @@ Rules:
 - If a topic is a question (e.g. "are applications open?") and the sources contain no clear evidence, say so explicitly in its own bullet. If there is evidence, cite it.
 - For changed pages, "+" marks added and "-" removed lines; explain plainly what changed. Use the page name as "topic" for each changed page.
 - If a topic or page has a "Focus" line, include ONLY information matching that focus and leave everything else out. If nothing matches, omit that topic or page entirely. A focus applies ONLY to the topic it is listed under; summarise every other topic fully as usual.
+- Judge dates against today's date given at the top: never describe an application period that is still open in the past tense. If a deadline is today, tomorrow or within the next 7 days, start the bullet with a warning such as "⏰ Last day tomorrow:" or "⏰ 5 days left:". Mark expired listings as such or skip them.
 - Handle every topic that has sources separately; never collapse the digest into a single topic.
 - Skip irrelevant, promotional or duplicate results. Omit topics with nothing meaningful left.
 - {language_hint}

@@ -255,3 +255,12 @@ def test_select_topics_keeps_matching_sections_ignoring_case_and_accents() -> No
         "Note\n\n### Önlisans İlanları\n\n- b\n\n**Kaynaklar**\n\n1. x"
     )
     assert select_topics(digest, ["Missing"]) is None
+
+
+def test_prompt_starts_with_todays_date_for_deadlines() -> None:
+    from datetime import date
+
+    prompt, _ = build_prompt(ITEMS, [], today=date(2026, 11, 24))
+    assert prompt.startswith("Bugünün tarihi / Today's date: 24.11.2026")
+    assert "Today's date" not in build_prompt(ITEMS, [])[0]
+    assert "yarın" in system_prompt("tr") and "tomorrow" in system_prompt("en")

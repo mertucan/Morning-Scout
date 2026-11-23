@@ -327,6 +327,7 @@ def build_summary(
             models=config.gemini_models,
             language=language,
             focus=config.focus_by_topic,
+            today=timing.local_today(config.tz),
         )
         log.info("Gemini: summary created (%d characters)", len(text))
         return text, "ai"

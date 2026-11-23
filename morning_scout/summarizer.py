@@ -12,6 +12,7 @@ import time
 from collections import defaultdict
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from datetime import date
 from typing import Any
 
 from morning_scout.messages import messages_for, system_prompt
@@ -45,6 +46,7 @@ def build_prompt(
     items: list[Item],
     changes: list[PageChange],
     focus: Mapping[str, str] | None = None,
+    today: date | None = None,
 ) -> tuple[str, dict[str, Source]]:
     """Render the new material as a numbered source list for the LLM.
 
@@ -59,6 +61,9 @@ def build_prompt(
     focus = focus or {}
     sources: dict[str, Source] = {}
     parts: list[str] = []
+    if today:
+        # Without it the model can't tell whether a deadline has passed.
+        parts.append(f"Bugünün tarihi / Today's date: {today:%d.%m.%Y}\n")
     for topic, topic_items in _group_by_topic(items).items():
         parts.append(f"## Konu / Topic: {topic}")
         if focus.get(topic):
@@ -169,6 +174,7 @@ def summarize_with_gemini(
     models: list[str],
     language: str,
     focus: Mapping[str, str] | None = None,
+    today: date | None = None,
 ) -> str:
     """Ask Gemini for a grouped digest, trying each model in turn.
 
@@ -189,7 +195,7 @@ def summarize_with_gemini(
         api_key=api_key, http_options=types.HttpOptions(timeout=REQUEST_TIMEOUT_MS)
     )
 
-    prompt, sources = build_prompt(items, changes, focus)
+    prompt, sources = build_prompt(items, changes, focus, today)
 
     def call(model: str) -> str:
         response = client.models.generate_content(
