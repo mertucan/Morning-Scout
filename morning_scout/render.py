@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import html
 import re
+import unicodedata
+from collections.abc import Iterable
 
 import markdown
 
@@ -55,6 +57,41 @@ def ntfy_message(summary_md: str, language: str, max_bytes: int = NTFY_MAX_BYTES
     if not kept:  # one enormous line: hard cut on a character boundary
         kept = [text.encode("utf-8")[:budget].decode("utf-8", errors="ignore")]
     return "\n".join(kept).rstrip() + suffix
+
+
+def select_topics(summary_md: str, topics: Iterable[str]) -> str | None:
+    """Keep only the ``### topic`` sections whose heading is in ``topics``.
+
+    Headings are compared ignoring case, accents and extra spaces, since the
+    model may write "Önlisans ilanları" for "Önlisans İlanları". Text before the
+    first heading (e.g. the "AI summary unavailable" note) is kept. Returns
+    None when no section matches, so nobody gets an empty e-mail.
+    """
+    wanted = {topic_key(topic) for topic in topics}
+    preamble: list[str] = []
+    kept: list[str] = []
+    keeping = False
+    seen_heading = False
+    for line in summary_md.splitlines():
+        if line.startswith("### "):
+            seen_heading = True
+            keeping = topic_key(line[4:]) in wanted
+            if keeping and kept:
+                kept.append("")
+        if keeping:
+            kept.append(line)
+        elif not seen_heading:
+            preamble.append(line)
+    if not kept:
+        return None
+    return "\n".join([*preamble, *kept]).strip()
+
+
+def topic_key(text: str) -> str:
+    """Case-, accent- and whitespace-insensitive form of a heading."""
+    decomposed = unicodedata.normalize("NFKD", text.casefold())
+    letters = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+    return " ".join(letters.split())
 
 
 def strip_links(text: str, sources_heading: str) -> str:

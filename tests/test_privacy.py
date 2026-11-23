@@ -216,3 +216,37 @@ def test_state_marks_sent_links_and_date(data_dir: Path, mocked_sources: dict[st
     assert len(state.pages) == 1
     raw = (data_dir / "state.json").read_text(encoding="utf-8")
     assert ITEM_URL not in raw and TITLE not in raw  # only hashes are stored
+
+
+def test_recipient_gets_only_their_topics_and_is_never_logged(
+    tmp_path: Path,
+    mocked_sources: dict[str, list],
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    friend = "zz-friend-zz@example.com"
+    (tmp_path / "config.yaml").write_text(
+        CONFIG
+        + f"""recipients:
+  - email: {friend}
+    topics: ["{TOPIC.upper()}"]
+  - email: other@example.com
+    topics: [Something else]
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        app,
+        "summarize_with_gemini",
+        lambda *a, **k: f"### {TOPIC}\n\n- {SUMMARY}\n\n### Owner only\n\n- secret plans",
+    )
+    caplog.set_level(logging.DEBUG, logger="morning_scout")
+
+    assert run(RunOptions(now=True), secrets=SECRETS, storage=LocalStorage(tmp_path)) == 0
+
+    owner, shared = mocked_sources["email"]  # the second recipient had no matching topic
+    assert "secret plans" in owner["text_body"]
+    assert shared["recipient"] == friend
+    assert SUMMARY in shared["text_body"] and "secret plans" not in shared["text_body"]
+    assert "Recipients: e-mail #1 sent" in caplog.text
+    assert friend not in "\n".join(r.getMessage() for r in caplog.records)

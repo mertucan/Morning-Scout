@@ -138,3 +138,28 @@ def test_sensitive_values_cover_every_query_field() -> None:
 def test_invalid_query_entries_raise(text: str) -> None:
     with pytest.raises(ConfigError):
         parse_config(text)
+
+
+def test_recipients_are_parsed_and_sensitive() -> None:
+    config = parse_config(
+        "recipients:\n  - email: friend@example.com\n    topics: [Jobs, Jobs, Other]\n"
+        "  - email: b@example.com\n    topics: Jobs\n"
+    )
+    first, second = config.recipients
+    assert first.email == "friend@example.com" and first.topics == ("Jobs", "Other")
+    assert second.topics == ("Jobs",)
+    assert "friend@example.com" in config.sensitive_values()
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "recipients: friend@example.com",
+        "recipients:\n  - email: not-an-address\n    topics: [Jobs]",
+        "recipients:\n  - email: a@example.com",
+        "recipients:\n  - email: a@example.com\n    topics: []",
+    ],
+)
+def test_invalid_recipients_raise(text: str) -> None:
+    with pytest.raises(ConfigError):
+        parse_config(text)

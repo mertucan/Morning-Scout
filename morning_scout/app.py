@@ -122,14 +122,17 @@ def run(options: RunOptions, secrets: Secrets | None = None, storage: Storage | 
     redactor.register_many(item.title for item in new_items)
     _log_counts(collection, new_items, len(config.pages))
 
-    summary, kind = build_summary(new_items, collection.changes, config, secrets)
+    digest, kind = build_summary(new_items, collection.changes, config, secrets)
     warning = token_expiry_warning(storage, config.summary_language)
-    if warning:
-        summary = f"{warning}\n\n{summary}"
+    summary = f"{warning}\n\n{digest}" if warning else digest
     title = messages_for(config.summary_language)["title"].format(date=today.strftime("%d.%m.%Y"))
+
+    shared = recipient_digests(digest, kind, config)
 
     if options.dry_run:
         print(f"\n{title}\n{'=' * len(title)}\n\n{summary}\n")
+        for number, (_, text) in enumerate(shared, start=1):
+            print(f"--- recipient #{number} ---\n\n{text}\n")
         log.info("Dry run: nothing sent, state not saved")
         return EXIT_OK
 
@@ -141,6 +144,8 @@ def run(options: RunOptions, secrets: Secrets | None = None, storage: Storage | 
     if not deliver(summary, title, kind, config.summary_language, secrets):
         log.error("Delivery: every channel failed; state not updated so the next run retries")
         return EXIT_FAILURE
+    # Only after the owner's digest went out, so a retried run can't send twice.
+    deliver_to_recipients(shared, title, config.summary_language, secrets)
 
     state.mark_seen(new_keys, today)
     state.last_sent_date = today.isoformat()
@@ -367,6 +372,46 @@ def deliver(summary: str, title: str, kind: str, language: str, secrets: Secrets
         except Exception as exc:
             log.warning("e-mail: failed: %s", describe_error(exc))
     return delivered
+
+
+def recipient_digests(digest: str, kind: str, config: Config) -> list[tuple[str, str]]:
+    """``(email, markdown)`` for each extra recipient with at least one matching topic.
+
+    Recipients get nothing on quiet days or when none of their topics has news.
+    The token reminder is never included: it is meant for the owner.
+    """
+    if kind == "empty":
+        return []
+    shared: list[tuple[str, str]] = []
+    for recipient in config.recipients:
+        text = render.select_topics(digest, recipient.topics)
+        if text:
+            shared.append((recipient.email, text))
+    return shared
+
+
+def deliver_to_recipients(
+    shared: list[tuple[str, str]], title: str, language: str, secrets: Secrets
+) -> None:
+    """E-mail each extra recipient their topics. Failures are logged, never fatal."""
+    if not shared:
+        return
+    if not (secrets.gmail_address and secrets.gmail_app_password):
+        log.warning("Recipients: Gmail is not configured; skipping %d e-mail(s)", len(shared))
+        return
+    for number, (email, text) in enumerate(shared, start=1):
+        try:
+            notify.send_email(
+                sender=secrets.gmail_address,
+                app_password=secrets.gmail_app_password,
+                recipient=email,
+                subject=title,
+                html_body=render.email_html(text, title, language),
+                text_body=render.email_text(text),
+            )
+            log.info("Recipients: e-mail #%d sent", number)
+        except Exception as exc:
+            log.warning("Recipients: e-mail #%d failed: %s", number, describe_error(exc))
 
 
 def _alert(

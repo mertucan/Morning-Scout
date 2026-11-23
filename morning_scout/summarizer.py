@@ -62,7 +62,7 @@ def build_prompt(
     for topic, topic_items in _group_by_topic(items).items():
         parts.append(f"## Konu / Topic: {topic}")
         if focus.get(topic):
-            parts.append(f"Odak / Focus: {focus[topic]}")
+            parts.append(f"Odak (yalnızca bu konu) / Focus (this topic only): {focus[topic]}")
         for item in topic_items:
             source_id = f"S{len(sources) + 1}"
             sources[source_id] = Source(item.title, item.url)
@@ -76,7 +76,7 @@ def build_prompt(
             sources[source_id] = Source(change.name, change.url)
             parts.append(f"- [{source_id}] {change.name}")
             if change.focus:
-                parts.append(f"  Odak / Focus: {change.focus}")
+                parts.append(f"  Odak (yalnızca bu sayfa) / Focus (this page only): {change.focus}")
             parts.append(f"  Fark / Diff:\n{change.diff}")
     return "\n".join(parts), sources
 
@@ -261,7 +261,7 @@ def fallback_summary(items: list[Item], changes: list[PageChange], language: str
     lines = [msg["fallback_note"], ""]
     for topic, topic_items in _group_by_topic(items).items():
         lines.append(f"### {topic}")
-        lines.extend(f"- [{_md_escape(item.title)}]({item.url})" for item in topic_items)
+        lines.extend(f"- [{_md_escape(shorten(item.title))}]({item.url})" for item in topic_items)
         lines.append("")
     if changes:
         lines.append(f"### {msg['section_pages']}")

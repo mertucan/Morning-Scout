@@ -66,12 +66,21 @@ class PageConfig:
 
 
 @dataclass(frozen=True)
+class Recipient:
+    """Someone else who gets an e-mail with only the listed digest topics."""
+
+    email: str
+    topics: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class Config:
     """Validated user configuration."""
 
     news: list[Query] = field(default_factory=list)
     searches: list[Query] = field(default_factory=list)
     pages: list[PageConfig] = field(default_factory=list)
+    recipients: list[Recipient] = field(default_factory=list)
     gemini_model: str = DEFAULT_GEMINI_MODEL
     gemini_fallback_model: str = DEFAULT_GEMINI_FALLBACK_MODEL
     send_time: time = time(8, 0)
@@ -105,6 +114,8 @@ class Config:
             values.extend([query.text, query.topic, *query.sites, query.focus or ""])
         for page in self.pages:
             values.extend([page.name, page.url, page.css_selector or "", page.focus or ""])
+        for recipient in self.recipients:
+            values.extend([recipient.email, *recipient.topics])
         return [v for v in values if v]
 
 
@@ -164,6 +175,7 @@ def parse_config(text: str) -> Config:
     news = _queries(data, "news", allow_sites=False)
     searches = _queries(data, "searches", allow_sites=True)
     pages = _pages(data.get("pages"))
+    recipients = _recipients(data.get("recipients"))
 
     send_time = _parse_time(data.get("send_time") or DEFAULT_SEND_TIME)
     timezone = str(data.get("timezone") or DEFAULT_TIMEZONE)
@@ -180,6 +192,7 @@ def parse_config(text: str) -> Config:
         news=news,
         searches=searches,
         pages=pages,
+        recipients=recipients,
         gemini_model=str(data.get("gemini_model") or DEFAULT_GEMINI_MODEL).strip(),
         gemini_fallback_model=str(
             data.get("gemini_fallback_model") or DEFAULT_GEMINI_FALLBACK_MODEL
@@ -277,6 +290,29 @@ def _pages(raw: Any) -> list[PageConfig]:
             )
         )
     return pages
+
+
+def _recipients(raw: Any) -> list[Recipient]:
+    """Extra e-mail recipients, each limited to some digest topics (headings)."""
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise ConfigError("'recipients' must be a list")
+    recipients: list[Recipient] = []
+    for index, entry in enumerate(raw, start=1):
+        if not isinstance(entry, dict):
+            raise ConfigError(f"recipients entry #{index} must have 'email' and 'topics' fields")
+        email = _optional_text(entry.get("email")) or ""
+        if "@" not in email or " " in email:
+            raise ConfigError(f"recipients entry #{index} needs a valid 'email'")
+        topics = entry.get("topics")
+        if isinstance(topics, str):
+            topics = [topics]
+        if not isinstance(topics, list) or not [t for t in topics if _optional_text(t)]:
+            raise ConfigError(f"recipients entry #{index} needs a list of 'topics'")
+        names = tuple(dict.fromkeys(t for t in map(_optional_text, topics) if t))
+        recipients.append(Recipient(email=email, topics=names))
+    return recipients
 
 
 def _parse_time(value: Any) -> time:

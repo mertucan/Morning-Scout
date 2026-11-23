@@ -51,7 +51,8 @@ Kurallar:
 - Aynı olayı anlatan birden fazla kaynak varsa tek maddede birleştir.
 - Konu bir soru içeriyorsa (ör. "başvuru açıldı mı?", "tarih açıklandı mı?") kaynaklarda net bir kanıt yoksa bunu ayrı bir maddede açıkça yaz (ör. "Kaynaklarda başvurunun açıldığına dair net bir bilgi yok."). Kanıt varsa ilgili kaynağı göster.
 - Değişen sayfalarda "+" eklenen, "-" silinen satırları gösterir; neyin değiştiğini sade bir dille anlat. Her değişen sayfa için sayfa adını "topic" olarak kullan.
-- Bir konunun veya sayfanın altında "Odak" yazıyorsa o kısım için YALNIZCA odağa uyan bilgileri yaz, uymayanları tamamen atla. Odağa uyan bir şey yoksa o konuyu ya da sayfayı hiç yazma.
+- Bir konunun veya sayfanın altında "Odak" yazıyorsa o kısım için YALNIZCA odağa uyan bilgileri yaz, uymayanları tamamen atla. Odağa uyan bir şey yoksa o konuyu ya da sayfayı hiç yazma. Odak SADECE altında yazdığı konu için geçerlidir; diğer konuları etkilemez, onları her zamanki gibi eksiksiz özetle.
+- Kaynağı olan her konuyu ayrı ayrı ele al; hiçbir konuyu atlayıp özeti tek konuya indirme.
 - Konuyla ilgisiz, reklam veya tekrar niteliğindeki sonuçları atla. Bir konu için anlamlı bir şey kalmadıysa o konuyu hiç yazma.
 - Türkçe yaz.
 """
@@ -66,7 +67,8 @@ Rules:
 - Merge multiple sources about the same event into a single bullet.
 - If a topic is a question (e.g. "are applications open?") and the sources contain no clear evidence, say so explicitly in its own bullet. If there is evidence, cite it.
 - For changed pages, "+" marks added and "-" removed lines; explain plainly what changed. Use the page name as "topic" for each changed page.
-- If a topic or page has a "Focus" line, include ONLY information matching that focus and leave everything else out. If nothing matches, omit that topic or page entirely.
+- If a topic or page has a "Focus" line, include ONLY information matching that focus and leave everything else out. If nothing matches, omit that topic or page entirely. A focus applies ONLY to the topic it is listed under; summarise every other topic fully as usual.
+- Handle every topic that has sources separately; never collapse the digest into a single topic.
 - Skip irrelevant, promotional or duplicate results. Omit topics with nothing meaningful left.
 - {language_hint}
 """

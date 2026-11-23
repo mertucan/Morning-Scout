@@ -57,6 +57,15 @@ pages:
     url: https://example.com/
     focus: Only mention changes to the opening hours.
 
+# Optional: other people who get an e-mail with only some digest headings
+# ("topic" names above, or a page name). Nothing is sent to them on days
+# when none of their headings has news.
+# İsteğe bağlı: bültenin sadece bazı başlıklarını e-postayla alacak kişiler.
+# Başlıklarında yenilik olmayan günlerde onlara bir şey gitmez.
+# recipients:
+#   - email: friend@example.com
+#     topics: [Open models]
+
 # Gemini model used for the summary, and a fallback used when it is
 # overloaded or unavailable. Both must be available on your plan.
 # Özet için kullanılacak Gemini modeli ve yoğunluk/hata durumunda yedeği.

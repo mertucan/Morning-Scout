@@ -21,6 +21,7 @@ Every morning I was opening the same tabs: news searches, a few announcement pag
 - **Grounded AI summary with citations.** Gemini groups the results by topic into short bullets. Each bullet carries numbered citations like `[1]` `[2]`, and each topic ends with a numbered source list. The model answers in a JSON schema and cites sources by id; the code inserts the real links, so the model can't invent or mangle URLs. It is told to use only the sources it is given, and to say so plainly when a question such as "are applications open?" has no clear evidence. Google Search grounding is not used.
 - **Graceful degradation.** A failing source is skipped. Gemini calls are retried on 429/5xx errors and then move down a model chain (main → fallback → a lightweight last resort). If all of them fail, you get a plain title + link list. On a quiet day you get a short "nothing new" push.
 - **Two channels.** A compact Markdown push on your phone (ntfy) and a full HTML e-mail with clickable links (Gmail).
+- **Share selected topics.** Extra recipients can get an e-mail with only the headings they care about. Their addresses live in the private config, never in the repo or the logs.
 - **Delivered on time, once.** The run is triggered at 07:45, waits until exactly 08:00 local time, and never sends twice on the same day, even when the backup schedule also fires.
 - **Private by design.** Topics, links and summaries never touch the repository, the commit history, Actions logs or artifacts (see [Privacy design](#privacy-design)).
 - **Token expiry reminder.** GitHub reports when the Gist token expires. In its last 14 days, a reminder to regenerate it appears at the top of the digest.
@@ -207,6 +208,9 @@ send_time: "08:00"
 timezone: Europe/Istanbul
 summary_language: tr      # "tr" or "en" (other codes get English UI text)
 search_time_range: day    # "day" or "week"
+recipients:               # optional: share only some headings by e-mail
+  - email: friend@example.com
+    topics: [Open models]
 ```
 
 Social media searches only see posts that a search engine has already indexed. That usually takes hours to days, and following one specific account is unreliable. For time-critical announcements, watching the official page under `pages` is faster.
@@ -245,4 +249,4 @@ This repository is public, but what I follow is personal. The design keeps the c
 4. **Secret Gist:** [gist.github.com](https://gist.github.com)'da secret gist oluştur. İçine `config.yaml` (örnek dosyadan) ve içeriği `{}` olan `state.json` koy. URL'nin sonundaki kimlik `GIST_ID` olacak. `GIST_TOKEN` için fine-grained token oluştur (Account permissions → **Gists: Read and write**). Okuma hatası alırsan sadece `gist` scope'lu klasik token kullan.
 5. **GitHub Secrets:** Settings → Secrets and variables → Actions'a 8 secret'ı ekle. Actions → Morning Scout → *Run workflow* ile dene.
 6. **cron-job.org:** Sadece bu repoya erişen, **Actions: Read and write** izinli ayrı bir fine-grained token oluştur. Her gün **07:45 (Europe/Istanbul)** için `POST https://api.github.com/repos/<kullanıcı>/<repo>/actions/workflows/morning-scout.yml/dispatches` işi kur. Header'lar: `Authorization: Bearer <token>`, `Accept: application/vnd.github+json`. Body: `{"ref":"main"}`. Test'te `204` dönmeli.
-7. **Konuları düzenlemek:** Telefondan gist'i açıp `config.yaml`'ı düzenlemen yeterli. YAML bozulursa ntfy'ye satır numarasıyla uyarı gelir. Birden fazla aramayı tek başlıkta toplamak için `topic`, sosyal medyada aramak için `sites: [x.com, instagram.com]`, sonuçları filtrelemek için `focus` kullanabilirsin.
+7. **Konuları düzenlemek:** Telefondan gist'i açıp `config.yaml`'ı düzenlemen yeterli. YAML bozulursa ntfy'ye satır numarasıyla uyarı gelir. Birden fazla aramayı tek başlıkta toplamak için `topic`, sosyal medyada aramak için `sites: [x.com, instagram.com]`, sonuçları filtrelemek için `focus` kullanabilirsin. Bazı başlıkları başka birine de göndermek için `recipients` altına e-posta adresini ve başlıkları (`topics`) yaz.

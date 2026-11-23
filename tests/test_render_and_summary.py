@@ -232,9 +232,10 @@ def test_invalid_json_counts_as_model_failure(monkeypatch: pytest.MonkeyPatch) -
 def test_prompt_shows_focus_for_topics_and_pages() -> None:
     changes = [PageChange("Job board", "https://c.example", "+ new", focus="only IT jobs")]
     prompt, _ = build_prompt(ITEMS, changes, {"AI": "only open models"})
-    assert "## Konu / Topic: AI\nOdak / Focus: only open models" in prompt
-    assert "Odak / Focus: only IT jobs" in prompt
-    assert prompt.count("Odak / Focus") == 2  # "Python release" has no focus
+    assert "## Konu / Topic: AI\nOdak (yalnızca bu konu)" in prompt
+    assert "Focus (this topic only): only open models" in prompt
+    assert "Focus (this page only): only IT jobs" in prompt
+    assert prompt.count("Odak (") == 2  # "Python release" has no focus
 
 
 def test_long_source_titles_are_shortened_at_a_word() -> None:
@@ -244,3 +245,13 @@ def test_long_source_titles_are_shortened_at_a_word() -> None:
     caption = "Kamu Alım on Instagram: " + "çok uzun bir gönderi metni " * 10
     result = shorten(caption, limit=40)
     assert len(result) <= 41 and result.endswith("…") and not result.endswith(" …")
+
+
+def test_select_topics_keeps_matching_sections_ignoring_case_and_accents() -> None:
+    from morning_scout.render import select_topics
+
+    digest = "Note\n\n### THY\n\n- a\n\n### Önlisans İlanları\n\n- b\n\n**Kaynaklar**\n\n1. x"
+    assert select_topics(digest, ["önlisans  ilanları"]) == (
+        "Note\n\n### Önlisans İlanları\n\n- b\n\n**Kaynaklar**\n\n1. x"
+    )
+    assert select_topics(digest, ["Missing"]) is None
