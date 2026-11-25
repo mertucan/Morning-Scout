@@ -163,3 +163,23 @@ def test_recipients_are_parsed_and_sensitive() -> None:
 def test_invalid_recipients_raise(text: str) -> None:
     with pytest.raises(ConfigError):
         parse_config(text)
+
+
+def test_feeds_and_page_topics() -> None:
+    config = parse_config(
+        "feeds:\n  - url: https://jobs.example/rss\n    topic: Public jobs\n    focus: f\n"
+        "pages:\n  - name: Board\n    url: https://board.example\n    topic: Public jobs\n"
+    )
+    assert config.feeds[0].topic == "Public jobs"
+    assert config.pages[0].topic == "Public jobs"
+    assert config.focus_by_topic == {"Public jobs": "f"}
+    assert "https://jobs.example/rss" in config.sensitive_values()
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["feeds: x", "feeds:\n  - url: https://a.example", "feeds:\n  - url: a.example\n    topic: t"],
+)
+def test_invalid_feeds_raise(text: str) -> None:
+    with pytest.raises(ConfigError):
+        parse_config(text)

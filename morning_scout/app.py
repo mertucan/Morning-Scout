@@ -24,6 +24,7 @@ from morning_scout.messages import messages_for
 from morning_scout.models import Item, PageChange
 from morning_scout.privacy import describe_error, redactor
 from morning_scout.sources import new_session
+from morning_scout.sources.feeds import fetch_feed
 from morning_scout.sources.news import fetch_news
 from morning_scout.sources.pages import compare, fetch_page_text
 from morning_scout.sources.search import search
@@ -66,6 +67,7 @@ class Collection:
 
     news: list[Item] = field(default_factory=list)
     search: list[Item] = field(default_factory=list)
+    feed: list[Item] = field(default_factory=list)
     changes: list[PageChange] = field(default_factory=list)
     snapshots: dict[str, PageSnapshot] = field(default_factory=dict)
     failures: int = 0
@@ -107,10 +109,11 @@ def run(options: RunOptions, secrets: Secrets | None = None, storage: Storage | 
         return EXIT_OK
 
     log.info(
-        "Config: %d news queries, %d searches, %d pages",
+        "Config: %d news queries, %d searches, %d pages, %d feeds",
         len(config.news),
         len(config.searches),
         len(config.pages),
+        len(config.feeds),
     )
     if tavily_monthly_usage(config) > MONTHLY_TAVILY_CREDITS:
         log.warning(
@@ -118,7 +121,9 @@ def run(options: RunOptions, secrets: Secrets | None = None, storage: Storage | 
         )
 
     collection = collect(config, secrets, state, today)
-    new_items, new_keys = select_new([*collection.news, *collection.search], state)
+    new_items, new_keys = select_new(
+        [*collection.news, *collection.search, *collection.feed], state
+    )
     redactor.register_many(item.title for item in new_items)
     _log_counts(collection, new_items, len(config.pages))
 
@@ -220,9 +225,11 @@ def collect(config: Config, secrets: Secrets, state: State, today: date) -> Coll
             log.info("Tavily: %d searches", len(search_jobs))
 
         page_jobs = [(page, pool.submit(_fetch_page, page)) for page in config.pages]
+        feed_jobs = [pool.submit(_fetch_feed, feed.url, feed.topic) for feed in config.feeds]
 
         result.news = _gather("news", news_jobs, result)
         result.search = _gather("search", search_jobs, result)
+        result.feed = _gather("feed", feed_jobs, result)
 
         statuses = {"first_seen": 0, "unchanged": 0, "changed": 0}
         for index, (page, job) in enumerate(page_jobs, start=1):
@@ -259,6 +266,11 @@ def _search(query: Query, api_key: str, time_range: str) -> list[Item]:
         return search(
             query.text, api_key, session, time_range, sites=query.sites, topic=query.topic
         )
+
+
+def _fetch_feed(url: str, topic: str) -> list[Item]:
+    with new_session() as session:
+        return fetch_feed(url, topic, session)
 
 
 def _fetch_page(page: PageConfig) -> str:
@@ -300,7 +312,13 @@ def select_new(items: list[Item], state: State) -> tuple[list[Item], list[str]]:
 
 
 def _log_counts(collection: Collection, new_items: list[Item], page_count: int) -> None:
-    for label, items in (("news", collection.news), ("search", collection.search)):
+    for label, items in (
+        ("news", collection.news),
+        ("search", collection.search),
+        ("feed", collection.feed),
+    ):
+        if label == "feed" and not items:
+            continue
         new = sum(1 for item in new_items if item.source == label)
         log.info("%s: %d results, %d new", label, len(items), new)
     if collection.failures:

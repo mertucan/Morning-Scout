@@ -15,7 +15,7 @@ from morning_scout.models import PageChange
 from morning_scout.sources import TIMEOUT
 from morning_scout.state import PageSnapshot, text_digest
 
-MAX_DIFF_CHARS = 1500
+MAX_DIFF_CHARS = 3000
 _NOISE_TAGS = ("script", "style", "noscript", "template", "svg", "iframe")
 
 PageStatus = Literal["first_seen", "unchanged", "changed"]
@@ -78,17 +78,26 @@ def compare(page: PageConfig, text: str, previous: PageSnapshot | None, today: d
     if not diff:
         # Only the part beyond the stored (truncated) text changed.
         diff = "…"
-    return PageCheck("changed", snapshot, PageChange(page.name, page.url, diff, page.focus))
+    return PageCheck(
+        "changed", snapshot, PageChange(page.name, page.url, diff, page.focus, page.topic)
+    )
 
 
 def summarize_diff(old: str, new: str, limit: int = MAX_DIFF_CHARS) -> str:
-    """Compact "+ added / - removed" lines between two texts, capped at ``limit`` characters."""
+    """Compact "+ added / - removed" lines between two texts, capped at ``limit`` characters.
+
+    Added lines come first: on listing pages they are the new listings, while
+    removed lines are mostly expired ones, so those are what the cap cuts.
+    """
     old_lines, new_lines = old.splitlines(), new.splitlines()
-    out: list[str] = []
+    added: list[str] = []
+    removed: list[str] = []
     for line in difflib.unified_diff(old_lines, new_lines, lineterm="", n=0):
         if line.startswith(("+++", "---", "@@")):
             continue
-        if line[:1] in "+-":
-            out.append(f"{line[0]} {line[1:].strip()}")
-    text = "\n".join(out)
+        if line[:1] == "+":
+            added.append(f"+ {line[1:].strip()}")
+        elif line[:1] == "-":
+            removed.append(f"- {line[1:].strip()}")
+    text = "\n".join([*added, *removed])
     return text if len(text) <= limit else text[:limit].rsplit("\n", 1)[0] + "\n…"

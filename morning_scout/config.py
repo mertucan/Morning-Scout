@@ -63,6 +63,16 @@ class PageConfig:
     url: str
     css_selector: str | None = None
     focus: str | None = None
+    topic: str | None = None  # digest heading shared with other sources; default: name
+
+
+@dataclass(frozen=True)
+class FeedConfig:
+    """An RSS/Atom feed (e.g. an official job board); every new entry is reported once."""
+
+    url: str
+    topic: str
+    focus: str | None = None
 
 
 @dataclass(frozen=True)
@@ -80,6 +90,7 @@ class Config:
     news: list[Query] = field(default_factory=list)
     searches: list[Query] = field(default_factory=list)
     pages: list[PageConfig] = field(default_factory=list)
+    feeds: list[FeedConfig] = field(default_factory=list)
     recipients: list[Recipient] = field(default_factory=list)
     gemini_model: str = DEFAULT_GEMINI_MODEL
     gemini_fallback_model: str = DEFAULT_GEMINI_FALLBACK_MODEL
@@ -102,9 +113,9 @@ class Config:
     def focus_by_topic(self) -> dict[str, str]:
         """The ``focus`` instruction of each topic that has one (first one wins)."""
         focus: dict[str, str] = {}
-        for query in [*self.news, *self.searches]:
-            if query.focus:
-                focus.setdefault(query.topic, query.focus)
+        for source in [*self.news, *self.searches, *self.feeds]:
+            if source.focus:
+                focus.setdefault(source.topic, source.focus)
         return focus
 
     def sensitive_values(self) -> list[str]:
@@ -113,7 +124,11 @@ class Config:
         for query in [*self.news, *self.searches]:
             values.extend([query.text, query.topic, *query.sites, query.focus or ""])
         for page in self.pages:
-            values.extend([page.name, page.url, page.css_selector or "", page.focus or ""])
+            values.extend(
+                [page.name, page.url, page.css_selector or "", page.focus or "", page.topic or ""]
+            )
+        for feed in self.feeds:
+            values.extend([feed.url, feed.topic, feed.focus or ""])
         for recipient in self.recipients:
             values.extend([recipient.email, *recipient.topics])
         return [v for v in values if v]
@@ -175,6 +190,7 @@ def parse_config(text: str) -> Config:
     news = _queries(data, "news", allow_sites=False)
     searches = _queries(data, "searches", allow_sites=True)
     pages = _pages(data.get("pages"))
+    feeds = _feeds(data.get("feeds"))
     recipients = _recipients(data.get("recipients"))
 
     send_time = _parse_time(data.get("send_time") or DEFAULT_SEND_TIME)
@@ -192,6 +208,7 @@ def parse_config(text: str) -> Config:
         news=news,
         searches=searches,
         pages=pages,
+        feeds=feeds,
         recipients=recipients,
         gemini_model=str(data.get("gemini_model") or DEFAULT_GEMINI_MODEL).strip(),
         gemini_fallback_model=str(
@@ -287,9 +304,27 @@ def _pages(raw: Any) -> list[PageConfig]:
                 url,
                 css_selector=_optional_text(entry.get("css_selector")),
                 focus=_optional_text(entry.get("focus")),
+                topic=_optional_text(entry.get("topic")),
             )
         )
     return pages
+
+
+def _feeds(raw: Any) -> list[FeedConfig]:
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise ConfigError("'feeds' must be a list")
+    feeds: list[FeedConfig] = []
+    for index, entry in enumerate(raw, start=1):
+        if not isinstance(entry, dict):
+            raise ConfigError(f"feeds entry #{index} must have 'url' and 'topic' fields")
+        url = _optional_text(entry.get("url")) or ""
+        topic = _optional_text(entry.get("topic"))
+        if not topic or not url.startswith(("http://", "https://")):
+            raise ConfigError(f"feeds entry #{index} needs a 'topic' and an http(s) 'url'")
+        feeds.append(FeedConfig(url=url, topic=topic, focus=_optional_text(entry.get("focus"))))
+    return feeds
 
 
 def _recipients(raw: Any) -> list[Recipient]:

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-SourceKind = Literal["news", "search"]
+SourceKind = Literal["news", "search", "feed"]
 
 
 @dataclass(frozen=True)
@@ -27,3 +27,4 @@ class PageChange:
     url: str
     diff: str
     focus: str | None = None
+    topic: str | None = None  # digest heading; the page name when not set

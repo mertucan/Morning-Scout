@@ -54,6 +54,8 @@ def build_prompt(
     :func:`render_digest` puts the real links back afterwards, so the model
     cannot mangle or invent URLs, and long redirect links don't waste tokens.
     ``focus`` maps a topic to a filter instruction shown under its heading.
+    Page changes are listed in the block of their page's topic, so a topic fed
+    by both a feed and watched pages becomes a single section.
 
     Returns:
         The prompt text and the ``{id: Source}`` mapping.
@@ -64,22 +66,26 @@ def build_prompt(
     if today:
         # Without it the model can't tell whether a deadline has passed.
         parts.append(f"Bugünün tarihi / Today's date: {today:%d.%m.%Y}\n")
-    for topic, topic_items in _group_by_topic(items).items():
+
+    grouped_items = _group_by_topic(items)
+    grouped_changes: dict[str, list[PageChange]] = defaultdict(list)
+    for change in changes:
+        grouped_changes[change.topic or change.name].append(change)
+
+    for topic in dict.fromkeys([*grouped_items, *grouped_changes]):
         parts.append(f"## Konu / Topic: {topic}")
         if focus.get(topic):
             parts.append(f"Odak (yalnızca bu konu) / Focus (this topic only): {focus[topic]}")
-        for item in topic_items:
+        for item in grouped_items.get(topic, []):
             source_id = f"S{len(sources) + 1}"
             sources[source_id] = Source(item.title, item.url)
             parts.append(f"- [{source_id}] {item.title}")
             if item.snippet:
                 parts.append(f"  {item.snippet[:MAX_SNIPPET_CHARS]}")
-    if changes:
-        parts.append("## Değişen sayfalar / Changed pages")
-        for change in changes:
+        for change in grouped_changes.get(topic, []):
             source_id = f"S{len(sources) + 1}"
             sources[source_id] = Source(change.name, change.url)
-            parts.append(f"- [{source_id}] {change.name}")
+            parts.append(f"- [{source_id}] Sayfa değişikliği / Page change: {change.name}")
             if change.focus:
                 parts.append(f"  Odak (yalnızca bu sayfa) / Focus (this page only): {change.focus}")
             parts.append(f"  Fark / Diff:\n{change.diff}")
@@ -269,9 +275,13 @@ def fallback_summary(items: list[Item], changes: list[PageChange], language: str
         lines.append(f"### {topic}")
         lines.extend(f"- [{_md_escape(shorten(item.title))}]({item.url})" for item in topic_items)
         lines.append("")
-    if changes:
-        lines.append(f"### {msg['section_pages']}")
-        lines.extend(f"- [{_md_escape(change.name)}]({change.url})" for change in changes)
+    by_topic: dict[str, list[PageChange]] = defaultdict(list)
+    for change in changes:
+        by_topic[change.topic or msg["section_pages"]].append(change)
+    for topic, topic_changes in by_topic.items():
+        lines.append(f"### {topic}")
+        lines.extend(f"- [{_md_escape(change.name)}]({change.url})" for change in topic_changes)
+        lines.append("")
     return "\n".join(lines).strip()
 
 

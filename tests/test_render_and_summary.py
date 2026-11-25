@@ -264,3 +264,18 @@ def test_prompt_starts_with_todays_date_for_deadlines() -> None:
     assert prompt.startswith("Bugünün tarihi / Today's date: 24.11.2026")
     assert "Today's date" not in build_prompt(ITEMS, [])[0]
     assert "yarın" in system_prompt("tr") and "tomorrow" in system_prompt("en")
+
+
+def test_page_changes_join_the_block_of_their_topic() -> None:
+    items = [Item("feed", "Public jobs", "Listing", "https://a.example/1")]
+    changes = [
+        PageChange("Board", "https://b.example", "+ new job", topic="Public jobs"),
+        PageChange("Other page", "https://c.example", "+ x"),
+    ]
+    prompt, sources = build_prompt(items, changes)
+    assert prompt.count("## Konu / Topic: Public jobs") == 1
+    block = prompt.split("## Konu / Topic: Other page")[0]
+    assert "[S2] Sayfa değişikliği / Page change: Board" in block
+    assert len(sources) == 3
+    fallback = fallback_summary(items, changes, "tr")
+    assert fallback.count("### Public jobs") == 2 and "### Other page" not in fallback

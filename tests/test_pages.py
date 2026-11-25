@@ -86,3 +86,11 @@ def test_summarize_diff_is_capped() -> None:
     diff = summarize_diff(old, new, limit=200)
     assert len(diff) <= 202
     assert diff.endswith("…")
+
+
+def test_added_lines_come_first_so_new_listings_survive_the_cap() -> None:
+    old = "\n".join(f"expired listing {n}" for n in range(50))
+    new = "brand new listing"
+    diff = summarize_diff(old, new, limit=200)
+    assert diff.startswith("+ brand new listing")
+    assert diff.endswith("…")

@@ -13,7 +13,7 @@ Every morning I was opening the same tabs: news searches, a few announcement pag
 
 ## Features
 
-- **Three kinds of sources.** Google News (last 24 h), Tavily web search (last day or week), and page watching with an optional CSS selector.
+- **Four kinds of sources.** Google News (last 24 h), Tavily web search (last day or week), RSS feeds (e.g. an official job board, each new entry reported once), and page watching with an optional CSS selector.
 - **Public social media posts, without scraping.** X and Instagram have no free read API, and scraping breaks their terms. Instead, a web search can be restricted to chosen domains (`sites: [x.com, instagram.com]`), which finds public posts that search engines have indexed.
 - **Topics and filters.** Several queries can share one heading (`topic`), and a `focus` instruction tells the summary what to keep, e.g. "only listings open to associate-degree graduates".
 - **Only new things.** Links are normalized (tracking parameters, `www`, trailing slashes and fragments are removed) and hashed. Anything sent in the last 30 days is skipped.
@@ -198,10 +198,14 @@ searches:                 # Tavily web searches; questions work well
   - query: open weights model release
     topic: Open models
     sites: [x.com, instagram.com]     # only public posts on these sites
-pages:                    # pages to watch; css_selector and focus are optional
+pages:                    # pages to watch; css_selector, topic and focus are optional
   - name: Python downloads
     url: https://www.python.org/downloads/
     css_selector: ".download-list-widget"
+    topic: Python             # several pages (and feeds) can share one heading
+feeds:                    # RSS/Atom feeds; every new entry is reported once
+  - url: https://blog.python.org/feeds/posts/default?alt=rss
+    topic: Python
 gemini_model: gemini-3.8-flash
 gemini_fallback_model: gemini-3.6-flash   # used if the main model is overloaded
 send_time: "08:00"
@@ -249,4 +253,4 @@ This repository is public, but what I follow is personal. The design keeps the c
 4. **Secret Gist:** [gist.github.com](https://gist.github.com)'da secret gist oluştur. İçine `config.yaml` (örnek dosyadan) ve içeriği `{}` olan `state.json` koy. URL'nin sonundaki kimlik `GIST_ID` olacak. `GIST_TOKEN` için fine-grained token oluştur (Account permissions → **Gists: Read and write**). Okuma hatası alırsan sadece `gist` scope'lu klasik token kullan.
 5. **GitHub Secrets:** Settings → Secrets and variables → Actions'a 8 secret'ı ekle. Actions → Morning Scout → *Run workflow* ile dene.
 6. **cron-job.org:** Sadece bu repoya erişen, **Actions: Read and write** izinli ayrı bir fine-grained token oluştur. Her gün **07:45 (Europe/Istanbul)** için `POST https://api.github.com/repos/<kullanıcı>/<repo>/actions/workflows/morning-scout.yml/dispatches` işi kur. Header'lar: `Authorization: Bearer <token>`, `Accept: application/vnd.github+json`. Body: `{"ref":"main"}`. Test'te `204` dönmeli.
-7. **Konuları düzenlemek:** Telefondan gist'i açıp `config.yaml`'ı düzenlemen yeterli. YAML bozulursa ntfy'ye satır numarasıyla uyarı gelir. Birden fazla aramayı tek başlıkta toplamak için `topic`, sosyal medyada aramak için `sites: [x.com, instagram.com]`, sonuçları filtrelemek için `focus` kullanabilirsin. Bazı başlıkları başka birine de göndermek için `recipients` altına e-posta adresini ve başlıkları (`topics`) yaz.
+7. **Konuları düzenlemek:** Telefondan gist'i açıp `config.yaml`'ı düzenlemen yeterli. YAML bozulursa ntfy'ye satır numarasıyla uyarı gelir. Birden fazla aramayı tek başlıkta toplamak için `topic`, sosyal medyada aramak için `sites: [x.com, instagram.com]`, sonuçları filtrelemek için `focus` kullanabilirsin. RSS beslemesi olan siteler için `feeds`, birden fazla sayfayı tek başlıkta toplamak için sayfalara `topic` ekleyebilirsin. Bazı başlıkları başka birine de göndermek için `recipients` altına e-posta adresini ve başlıkları (`topics`) yaz.

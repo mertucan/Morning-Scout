@@ -56,6 +56,17 @@ pages:
   - name: Example page
     url: https://example.com/
     focus: Only mention changes to the opening hours.
+    # Pages and feeds with the same "topic" share one heading in the digest.
+    # Aynı "topic"e sahip sayfalar ve beslemeler e-postada tek başlıkta toplanır.
+    topic: Python
+
+# RSS/Atom feeds (e.g. an official job board). Every new entry is reported
+# once, with its own link.
+# RSS/Atom beslemeleri (ör. resmî bir ilan sitesi). Her yeni kayıt kendi
+# linkiyle bir kez bildirilir.
+feeds:
+  - url: https://blog.python.org/feeds/posts/default?alt=rss
+    topic: Python
 
 # Optional: other people who get an e-mail with only some digest headings
 # ("topic" names above, or a page name). Nothing is sent to them on days
